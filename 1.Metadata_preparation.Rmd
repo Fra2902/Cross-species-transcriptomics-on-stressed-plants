@@ -1,0 +1,652 @@
+---
+title: "1_Metadata"
+output: html_document
+date: "2023-10-16"
+editor_options: 
+  chunk_output_type: console
+---
+
+Here we summarise the data from summary, runinfo, and biosamples for the BioProjects we identified for Arabidopsis, bread wheat and tomato.
+
+```{r}
+
+rm (list = ls())
+library(tidyverse)
+library(openxlsx)
+library(here)
+
+general_metadata <- read.xlsx(here("general_metadata.xlsx"))
+
+Metadata_filt <- general_metadata %>% 
+  select(Species, Stress.type, `Tissue(s)`, total_sample, `Platform(s)`, Major_Category, `Repository.Identifier.BioProject.(SRA,.ArrayExpress)`, DOI) %>% filter(str_detect(`Platform(s)`, "RNA"), Species!="durum wheat", Major_Category == "leaf")
+
+```
+
+arabidopsis
+
+```{r}
+
+summary_ath <- read.xlsx(here("data", "arabidopsis_summary_runinfo", "arabidopsis_rnaseq_summary_runinfo.xlsx"), sheet = "summary") %>% filter(!str_detect(Experiment.Accession, "Experiment"))
+
+run_info_ath <-read.xlsx(here("data", "arabidopsis_summary_runinfo", "arabidopsis_rnaseq_summary_runinfo.xlsx"), sheet = "run_info") %>% filter(!str_detect(Run, "Run"))
+
+```
+
+arabidopsis
+
+```{r}
+
+rm (list = ls ())
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all runinfo
+file_list <- list.files(path = here("Prova", "Arabidopsis thaliana", "Data", "temp"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+# 1. List all runinfo (update 07/2024)
+file_list <- list.files(path = here("Arabidopsis thaliana", "Data", "temp", "07_2024"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+read_runinfo <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(LibraryName = as.character(LibraryName),
+                       SampleName = as.character(SampleName))
+}
+
+combined_runinfo <- bind_rows(map(file_list, read_runinfo))
+
+# 2. List all sraresults
+file_list <- list.files(path = here("Prova", "Arabidopsis thaliana", "Data", "temp"), pattern = "^sra.*.csv", full.names = TRUE)
+
+file_list <- list.files(path = here("Arabidopsis thaliana", "Data", "temp", "07_2024"), pattern = "^sra.*.csv", full.names = TRUE)
+
+read_sraresults <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(`Library.Name` = as.character(`Library.Name`))
+  }
+
+combined_sraresults <- bind_rows(map(file_list, read_sraresults))
+
+# should be 0
+setdiff(unique(combined_runinfo$Experiment),unique(combined_sraresults$Experiment.Accession))
+
+```
+
+arabidopsis biosamples
+
+```{r}
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("Prova", "Arabidopsis thaliana", "Data", "temp"), pattern = "*.xml", full.names = TRUE)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("Arabidopsis thaliana", "Data", "temp", "07_2024"), pattern = "*.xml", full.names = TRUE)
+
+# 2. Loop through each file and 3. Apply your existing XML processing logic to each file
+df_list <- file_list %>%
+  map(~{
+    xml_doc <- read_xml(.x)
+    
+    df <- xml_doc %>%
+      xml_find_all("//BioSample") %>%
+      map_df(~{
+        data.frame(
+          Accession = xml_attr(.x, "accession"),
+          Sample_Name = xml_text(xml_find_first(.x, ".//Id[@db_label='Sample name']")),
+          Title = xml_text(xml_find_first(.x, ".//Title")),
+          Organism = xml_text(xml_find_first(.x, ".//OrganismName")),
+          Isolate = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='isolate']")),
+          Cultivar = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='cultivar']")),
+          Ecotype = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='ecotype']")),
+          Age = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='age']")),
+          Dev_Stage = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='dev_stage']")),
+          Geo_Location = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='geo_loc_name']")),
+          Tissue = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='tissue']")),
+          Sample_Type = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='sample_type']")),
+          Treatment = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='treatment']")),
+          Growth_condition = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='growth condition']")),
+          stringsAsFactors = FALSE
+        )
+      })
+    return(df)
+  })
+
+# 5. Optionally, combine all data frames into one if required
+combined_df <- bind_rows(df_list)
+
+```
+
+```{r}
+
+library(openxlsx)
+
+summary_ath <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  distinct() %>% write.xlsx(here("Prova", "Arabidopsis thaliana", "Data", "new_metadata.xlsx"))
+
+```
+
+Bread wheat
+
+```{r}
+
+rm (list = ls ())
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all runinfo
+file_list <- list.files(path = here("Triticum aestivum", "Data", "temp"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+# 1. List all runinfo (update 07/2024)
+file_list <- list.files(path = here("Triticum aestivum", "Data", "temp", "07_2024"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+read_runinfo <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(LibraryName = as.character(LibraryName))
+}
+
+combined_runinfo <- bind_rows(map(file_list, read_runinfo))
+
+# 2. List all sraresults
+file_list <- list.files(path = here("Triticum aestivum", "Data", "temp"), pattern = "^sra.*.csv", full.names = TRUE)
+
+file_list <- list.files(path = here("Triticum aestivum", "Data", "temp", "07_2024"), pattern = "^sra.*.csv", full.names = TRUE)
+
+read_sraresults <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(`Library.Name` = as.character(`Library.Name`))
+  }
+
+combined_sraresults <- bind_rows(map(file_list, read_sraresults))
+
+setdiff(unique(combined_runinfo$Experiment),unique(combined_sraresults$Experiment.Accession))
+
+```
+
+bread wheat biosamples
+```{r}
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("Triticum aestivum", "Data", "temp"), pattern = "*.xml", full.names = TRUE)
+
+# 1. List all XML files in your directory (update)
+file_list <- list.files(path = here("Triticum aestivum", "Data", "temp", "07_2024"), pattern = "*.xml", full.names = TRUE)
+
+# 2. Loop through each file and 3. Apply your existing XML processing logic to each file
+df_list <- file_list %>%
+  map(~{
+    xml_doc <- read_xml(.x)
+    
+    df <- xml_doc %>%
+      xml_find_all("//BioSample") %>%
+      map_df(~{
+        data.frame(
+          Accession = xml_attr(.x, "accession"),
+          Sample_Name = xml_text(xml_find_first(.x, ".//Id[@db_label='Sample name']")),
+          Title = xml_text(xml_find_first(.x, ".//Title")),
+          Organism = xml_text(xml_find_first(.x, ".//OrganismName")),
+          Isolate = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='isolate']")),
+          Cultivar = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='cultivar']")),
+          Ecotype = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='ecotype']")),
+          Age = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='age']")),
+          Dev_Stage = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='dev_stage']")),
+          Geo_Location = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='geo_loc_name']")),
+          Tissue = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='tissue']")),
+          Sample_Type = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='sample_type']")),
+          Treatment = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='treatment']")),
+          Growth_condition = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='growth condition']")),
+          stringsAsFactors = FALSE
+        )
+      })
+    return(df)
+  })
+
+# 5. Optionally, combine all data frames into one if required
+combined_df <- bind_rows(df_list)
+
+```
+
+```{r}
+
+library(openxlsx)
+
+summary_bread_wheat <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  distinct() %>% write.xlsx(here("Triticum aestivum", "Data", "new_metadata.xlsx"))
+
+summary_bread_wheat <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  distinct() %>% write.xlsx(here("data", "bread_wheat_update_merged.xlsx"))
+
+```
+
+poplar
+```{r}
+
+# 1. List all runinfo
+file_list <- list.files(path = here("data", "poplar_summary_runinfo"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+read_runinfo <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(LibraryName = as.character(LibraryName))
+}
+
+combined_runinfo <- bind_rows(map(file_list, read_runinfo))
+
+# 2. List all sraresults
+file_list <- list.files(path = here("data", "poplar_summary_runinfo"), pattern = "^sra.*.csv", full.names = TRUE)
+
+read_sraresults <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(`Library.Name` = as.character(`Library.Name`))
+  }
+
+combined_sraresults <- bind_rows(map(file_list, read_sraresults))
+
+
+setdiff(unique(combined_runinfo$Experiment),unique(combined_sraresults$Experiment.Accession))
+
+setdiff(unique(combined_sraresults$Experiment.Accession), unique(combined_runinfo$Experiment))
+
+```
+
+poplar biosamples
+
+```{r}
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("data", "poplar_biosamples"), pattern = "*.xml", full.names = TRUE)
+
+# 2. Loop through each file and 3. Apply your existing XML processing logic to each file
+df_list <- file_list %>%
+  map(~{
+    xml_doc <- read_xml(.x)
+    
+    df <- xml_doc %>%
+      xml_find_all("//BioSample") %>%
+      map_df(~{
+        data.frame(
+          Accession = xml_attr(.x, "accession"),
+          Sample_Name = xml_text(xml_find_first(.x, ".//Id[@db_label='Sample name']")),
+          Title = xml_text(xml_find_first(.x, ".//Title")),
+          Organism = xml_text(xml_find_first(.x, ".//OrganismName")),
+          Isolate = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='isolate']")),
+          Cultivar = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='cultivar']")),
+          Ecotype = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='ecotype']")),
+          Age = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='age']")),
+          Dev_Stage = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='dev_stage']")),
+          Geo_Location = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='geo_loc_name']")),
+          Tissue = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='tissue']")),
+          Sample_Type = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='sample_type']")),
+          Treatment = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='treatment']")),
+          Growth_condition = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='growth condition']")),
+          stringsAsFactors = FALSE
+        )
+      })
+    return(df)
+  })
+
+# 5. Optionally, combine all data frames into one if required
+combined_df <- bind_rows(df_list)
+
+```
+
+```{r}
+
+library(openxlsx)
+
+summary_poplar <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  distinct() %>% write.xlsx(here("data", "poplar_merged.xlsx"))
+
+```
+
+durum wheat
+
+```{r}
+
+# 1. List all runinfo
+file_list <- list.files(path = here("data", "durum_wheat_summary_runinfo"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+read_runinfo <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(LibraryName = as.character(LibraryName))
+}
+
+combined_runinfo <- bind_rows(map(file_list, read_runinfo))
+
+# 2. List all sraresults
+file_list <- list.files(path = here("data", "durum_wheat_summary_runinfo"), pattern = "^sra.*.csv", full.names = TRUE)
+
+read_sraresults <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(`Library.Name` = as.character(`Library.Name`))
+  }
+
+combined_sraresults <- bind_rows(map(file_list, read_sraresults))
+
+
+setdiff(unique(combined_runinfo$Experiment),unique(combined_sraresults$Experiment.Accession))
+
+setdiff(unique(combined_sraresults$Experiment.Accession), unique(combined_runinfo$Experiment))
+
+```
+
+```{r}
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("data", "durum_wheat_biosamples"), pattern = "*.xml", full.names = TRUE)
+
+# 2. Loop through each file and 3. Apply your existing XML processing logic to each file
+df_list <- file_list %>%
+  map(~{
+    xml_doc <- read_xml(.x)
+    
+    df <- xml_doc %>%
+      xml_find_all("//BioSample") %>%
+      map_df(~{
+        data.frame(
+          Accession = xml_attr(.x, "accession"),
+          Sample_Name = xml_text(xml_find_first(.x, ".//Id[@db_label='Sample name']")),
+          Title = xml_text(xml_find_first(.x, ".//Title")),
+          Organism = xml_text(xml_find_first(.x, ".//OrganismName")),
+          Isolate = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='isolate']")),
+          Cultivar = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='cultivar']")),
+          Ecotype = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='ecotype']")),
+          Age = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='age']")),
+          Dev_Stage = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='dev_stage']")),
+          Geo_Location = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='geo_loc_name']")),
+          Tissue = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='tissue']")),
+          Sample_Type = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='sample_type']")),
+          Treatment = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='treatment']")),
+          Growth_condition = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='growth condition']")),
+          stringsAsFactors = FALSE
+        )
+      })
+    return(df)
+  })
+
+# 5. Optionally, combine all data frames into one if required
+combined_df <- bind_rows(df_list)
+
+```
+
+```{r}
+
+library(openxlsx)
+
+combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  filter(`Organism.Name` != "Triticum dicoccoides") %>%
+  filter(`Organism.Name` != "Triticum aestivum") %>%
+  filter(!str_detect(`Experiment.Title`, "miRNA")) %>%
+  distinct() %>% write.xlsx(here("data", "durum_merged.xlsx"))
+
+```
+
+
+tomato
+
+```{r}
+
+rm (list = ls ())
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all runinfo
+file_list <- list.files(path = here("Solanum lycopersicum", "Data", "temp"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+# 1. List all runinfo (update 07/2024)
+file_list <- list.files(path = here("Solanum lycopersicum", "Data", "temp", "07_2024"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+read_runinfo <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(LibraryName = as.character(LibraryName),
+                       SampleName = as.character(SampleName))
+}
+
+combined_runinfo <- bind_rows(map(file_list, read_runinfo))
+
+# 2. List all sraresults
+file_list <- list.files(path = here("Solanum lycopersicum", "Data", "temp"), pattern = "^sra.*.csv", full.names = TRUE)
+
+file_list <- list.files(path = here("Solanum lycopersicum", "Data", "temp", "07_2024"), pattern = "^sra.*.csv", full.names = TRUE)
+
+read_sraresults <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(`Library.Name` = as.character(`Library.Name`))
+  }
+
+combined_sraresults <- bind_rows(map(file_list, read_sraresults))
+
+# should be 0
+setdiff(unique(combined_runinfo$Experiment),unique(combined_sraresults$Experiment.Accession))
+
+```
+
+tomato biosamples
+
+```{r}
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("Solanum lycopersicum", "Data", "temp"), pattern = "*.xml", full.names = TRUE)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("Solanum lycopersicum", "Data", "temp", "07_2024"), pattern = "*.xml", full.names = TRUE)
+
+# 2. Loop through each file and 3. Apply your existing XML processing logic to each file
+df_list <- file_list %>%
+  map(~{
+    xml_doc <- read_xml(.x)
+    
+    df <- xml_doc %>%
+      xml_find_all("//BioSample") %>%
+      map_df(~{
+        data.frame(
+          Accession = xml_attr(.x, "accession"),
+          Sample_Name = xml_text(xml_find_first(.x, ".//Id[@db_label='Sample name']")),
+          Title = xml_text(xml_find_first(.x, ".//Title")),
+          Organism = xml_text(xml_find_first(.x, ".//OrganismName")),
+          Isolate = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='isolate']")),
+          Cultivar = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='cultivar']")),
+          Ecotype = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='ecotype']")),
+          Age = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='age']")),
+          Dev_Stage = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='dev_stage']")),
+          Geo_Location = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='geo_loc_name']")),
+          Tissue = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='tissue']")),
+          Sample_Type = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='sample_type']")),
+          Treatment = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='treatment']")),
+          Growth_condition = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='growth condition']")),
+          stringsAsFactors = FALSE
+        )
+      })
+    return(df)
+  })
+
+# 5. Optionally, combine all data frames into one if required
+combined_df <- bind_rows(df_list)
+
+```
+
+```{r}
+
+library(openxlsx)
+
+summary_sly <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title, Tissue) %>%
+  distinct() %>% write.xlsx(here("Solanum lycopersicum", "Data", "new_metadata.xlsx"))
+
+summary_sly <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  distinct() %>% write.xlsx(here("Solanum lycopersicum", "solanum_samples_new.xlsx"))
+
+```
+
+CO2
+
+```{r}
+
+rm (list = ls ())
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all runinfo
+file_list <- list.files(path = here("Lavoro CO2", "Data", "temp"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+# 1. List all runinfo (update 07/2024)
+file_list <- list.files(path = here("Lavoro CO2", "Data", "temp", "07_2024"), pattern = "^SraRunInfo.*.csv", full.names = TRUE)
+
+read_runinfo <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(LibraryName = as.character(LibraryName),
+                       SampleName = as.character(SampleName))
+}
+
+combined_runinfo <- bind_rows(map(file_list, read_runinfo))
+
+# 2. List all sraresults
+file_list <- list.files(path = here("Lavoro CO2", "Data", "temp"), pattern = "^sra.*.csv", full.names = TRUE)
+
+file_list <- list.files(path = here("Lavoro CO2", "Data", "temp", "07_2024"), pattern = "^sra.*.csv", full.names = TRUE)
+
+read_sraresults <- 
+  function(x) {
+  x %>% read.csv %>% 
+                mutate(`Library.Name` = as.character(`Library.Name`))
+  }
+
+combined_sraresults <- bind_rows(map(file_list, read_sraresults))
+
+# should be 0
+setdiff(unique(combined_runinfo$Experiment),unique(combined_sraresults$Experiment.Accession))
+
+```
+
+CO2 biosamples
+
+```{r}
+
+library(xml2)
+library(purrr)
+library(dplyr)
+library(here)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("Lavoro CO2", "Data", "temp"), pattern = "*.xml", full.names = TRUE)
+
+# 1. List all XML files in your directory
+file_list <- list.files(path = here("Lavoro CO2", "Data", "temp", "07_2024"), pattern = "*.xml", full.names = TRUE)
+
+# 2. Loop through each file and 3. Apply your existing XML processing logic to each file
+df_list <- file_list %>%
+  map(~{
+    xml_doc <- read_xml(.x)
+    
+    df <- xml_doc %>%
+      xml_find_all("//BioSample") %>%
+      map_df(~{
+        data.frame(
+          Accession = xml_attr(.x, "accession"),
+          Sample_Name = xml_text(xml_find_first(.x, ".//Id[@db_label='Sample name']")),
+          Title = xml_text(xml_find_first(.x, ".//Title")),
+          Organism = xml_text(xml_find_first(.x, ".//OrganismName")),
+          Isolate = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='isolate']")),
+          Cultivar = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='cultivar']")),
+          Ecotype = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='ecotype']")),
+          Age = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='age']")),
+          Dev_Stage = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='dev_stage']")),
+          Geo_Location = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='geo_loc_name']")),
+          Tissue = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='tissue']")),
+          Sample_Type = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='sample_type']")),
+          Treatment = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='treatment']")),
+          Growth_condition = xml_text(xml_find_first(.x, ".//Attribute[@attribute_name='growth condition']")),
+          stringsAsFactors = FALSE
+        )
+      })
+    return(df)
+  })
+
+# 5. Optionally, combine all data frames into one if required
+combined_df <- bind_rows(df_list)
+
+```
+
+```{r}
+
+library(openxlsx)
+
+summary_ath <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  distinct() %>% write.xlsx(here("Lavoro CO2", "Data", "metadata.xlsx"))
+
+# for updating
+summary_ath <- combined_sraresults %>% 
+  inner_join(combined_runinfo, by = c("Experiment.Accession" = "Experiment")) %>%
+  left_join(combined_df, by = c("BioSample" = "Accession")) %>%
+  select(BioProject, SRAStudy, Run, Experiment.Accession, BioSample, Experiment.Title, LibraryName, SampleName, Organism.Name, Study.Title, Growth_condition, Treatment, Title) %>%
+  distinct() %>% write.xlsx(here("Lavoro CO2", "Data", "new_metadata.xlsx"))
+
+```
