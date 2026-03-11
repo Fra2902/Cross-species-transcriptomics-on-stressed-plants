@@ -19,7 +19,7 @@ orthology <- read.csv(here("Project/N0.tsv"), sep = "\t") %>%
   summarise(across(everything(), ~ paste(unique(.), collapse = ", ")))
 
 mart <- useMart("plants_mart", dataset = "athaliana_eg_gene", host = "https://plants.ensembl.org")
-connectome <- str_to_upper(str_split_1(read_file(here(paste0("Prova/Arabidopsis thaliana/Data/genes_connectome.txt"))), "\t"))
+connectome <- str_to_upper(str_split_1(read_file(here(paste0("Project/Arabidopsis thaliana/Data/genes_connectome.txt"))), "\t"))
 tf <- read_tsv(here("Project/Arabidopsis thaliana/Data/Ath_TF_list.txt"))
 
 orthogroups <- parse_orthofinder(here("Project/N0.tsv")) %>%
