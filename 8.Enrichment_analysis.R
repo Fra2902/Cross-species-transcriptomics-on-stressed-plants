@@ -42,7 +42,7 @@ for(sp in species) {
         df <- df %>%
           filter(!(ID %in% generic_BP))
         
-        write.xlsx(df, here(paste0("Prova/", sp, "/Products/Enrichment analysis/organism/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
+        write.xlsx(df, here(paste0("Prova/", sp, "/Products/Enrichment analysis/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
         terms <- append(terms, df$Description)
         
         if (length(df$ID) > 0) {
@@ -76,7 +76,7 @@ for(sp in species) {
               name = "p.adjust"
             ) 
           
-          ggsave(here(paste0("Prova/", sp, "/Products/Enrichment analysis/organism/enrichment_dotplot_degs_", tissue, "_", expr, ".pdf")), dotplot, height = 6, width = 8, units = "in", dpi = 600)
+          ggsave(here(paste0("Prova/", sp, "/Products/Enrichment analysis/enrichment_dotplot_degs_", tissue, "_", expr, ".pdf")), dotplot, height = 6, width = 8, units = "in", dpi = 600)
         }
         
         
@@ -100,7 +100,7 @@ for (sp in species) {
   for (tissue in tissues) {
     expression <- list()
     terms_list <- lapply(c("OVER", "UNDER"), function(expr) {
-      enr <- read.xlsx(here(paste0("Prova/", sp, "/Products/Enrichment analysis/organism/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
+      enr <- read.xlsx(here(paste0("Prova/", sp, "/Products/Enrichment analysis/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
       enr <- enr %>% filter(Description %in% conserved_terms)
       
       return(enr)
