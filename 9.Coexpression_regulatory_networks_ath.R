@@ -8,7 +8,7 @@ library(WGCNA)
 library(enrichplot)
 library(biomaRt)
 
-orthology <- read.csv(here("Orthology analysis/Phylogenetic_Hierarchical_Orthogroups/N0.tsv"), sep = "\t") %>%
+orthology <- read.csv(here("Project/N0.tsv"), sep = "\t") %>%
   group_by(Orthogroup) %>%
   summarise(across(everything(), ~ paste(unique(.), collapse = ", "))) %>%
   mutate(Arabidopsis.thaliana = str_split(Arabidopsis.thaliana, ", ")) %>%
@@ -20,15 +20,15 @@ orthology <- read.csv(here("Orthology analysis/Phylogenetic_Hierarchical_Orthogr
 
 mart <- useMart("plants_mart", dataset = "athaliana_eg_gene", host = "https://plants.ensembl.org")
 connectome <- str_to_upper(str_split_1(read_file(here(paste0("Prova/Arabidopsis thaliana/Data/genes_connectome.txt"))), "\t"))
-tf <- read_tsv(here("Prova/Arabidopsis thaliana/Data/Ath_TF_list.txt"))
+tf <- read_tsv(here("Project/Arabidopsis thaliana/Data/Ath_TF_list.txt"))
 
-orthogroups <- parse_orthofinder(here("Orthology analysis/Phylogenetic_Hierarchical_Orthogroups/N0.tsv")) %>%
+orthogroups <- parse_orthofinder(here("Project/N0.tsv")) %>%
   mutate(Gene = str_to_upper(Gene))
 species <- c("Arabidopsis thaliana", "Triticum aestivum", "Solanum lycopersicum")
 generic_BP <- read_file(here("generic_BP.txt"))
 generic_BP <- str_split_1(generic_BP, "\n")
-gmt_token <- gprofiler2::upload_GMT_file(gmtfile = here("Prova/Arabidopsis thaliana/Data/athaliana.GO_BP.ENSG_PlantConnectomeDroughtAdded.gmt"))
-plaza <- read.csv(here("Prova/Arabidopsis thaliana/Data/id_conversion.ath.csv"), skip = 8, row.names = NULL, sep = "\t")
+gmt_token <- gprofiler2::upload_GMT_file(gmtfile = here("Project/Arabidopsis thaliana/Data/athaliana.GO_BP.ENSG_PlantConnectomeDroughtAdded.gmt"))
+plaza <- read.csv(here("Project/Arabidopsis thaliana/Data/id_conversion.ath.csv"), skip = 8, row.names = NULL, sep = "\t")
 gene_descr_1 <- plaza %>% filter(id_type == "symbol")
 gene_descr <- plaza %>% 
   filter(id_type == "Alias") %>%
@@ -39,7 +39,7 @@ gene_descr <- plaza %>%
 gene_descr <- gene_descr %>%
   add_row(plaza %>% filter(!(X.gene_id %in% gene_descr$X.gene_id), id_type == "uniprot") %>% dplyr::select(-id_type)) %>%
   mutate(id = str_remove(id, regex("^at", ignore_case = TRUE)))
-go <- clusterProfiler::read.gmt(here("Prova/Arabidopsis thaliana/Data/athaliana.GO_BP.ENSG.gmt")) %>%
+go <- clusterProfiler::read.gmt(here("Project/Arabidopsis thaliana/Data/athaliana.GO_BP.ENSG.gmt")) %>%
   filter(term == "GO:0009415") %>%
   pull(gene)
 
@@ -47,17 +47,17 @@ set.seed(27000)
 for (tissue in c("leaf", "root")) {
   
   
-  degs_ath <- read.xlsx(here(paste0("Prova/Arabidopsis thaliana/Products/DEGs analysis/GDE_", tissue, ".xlsx")))
+  degs_ath <- read.xlsx(here(paste0("Project/Arabidopsis thaliana/Products/DEGs analysis/GDE_", tissue, ".xlsx")))
   
-  conserved_degs <- read.xlsx(here(paste0("Prova/Orthology analysis/conserved_degs_", tissue, ".xlsx"))) %>%
+  conserved_degs <- read.xlsx(here(paste0("Project/Orthology analysis/conserved_degs_", tissue, ".xlsx"))) %>%
     mutate(Arabidopsis.thaliana = str_split(Arabidopsis.thaliana, ", ")) %>%
     unnest(Arabidopsis.thaliana) %>%
     pull(Arabidopsis.thaliana)
   
-  coldata <- read.xlsx(here(paste0("Prova/Arabidopsis thaliana/Data/metadata_filtered_2.xlsx"))) %>% filter(Major.Category == tissue)
+  coldata <- read.xlsx(here(paste0("Project/Arabidopsis thaliana/Data/metadata_filtered_2.xlsx"))) %>% filter(Major.Category == tissue)
   
   
-  tpm <- read.table(here(paste0("Prova/Arabidopsis thaliana/Data/tpm_gene_level.txt"))) %>% 
+  tpm <- read.table(here(paste0("Project/Arabidopsis thaliana/Data/tpm_gene_level.txt"))) %>% 
     select(coldata$Run) %>% 
     filter(rownames(.) %in% degs_ath$Gene)
   
@@ -67,13 +67,13 @@ for (tissue in c("leaf", "root")) {
   )
   
   power_ortho <- SFT_fit(final_exp)
-  pdf(here(paste0("Prova/WGCNA/spearman/ath/", tissue, "_power_plot.pdf")), height = 4)
+  pdf(here(paste0("Project/WGCNA/", tissue, "_power_plot.pdf")), height = 4)
   print(power_ortho$plot)
   dev.off()
   
   net <- exp2gcn(final_exp, SFTpower = power_ortho$power)
   
-  pdf(here(paste0("Prova/WGCNA/spearman/ath/", tissue, "_genes_per_module.pdf")))
+  pdf(here(paste0("Project/WGCNA/", tissue, "_genes_per_module.pdf")))
   print(plot_ngenes_per_module(net))
   dev.off()
   
@@ -88,7 +88,7 @@ for (tissue in c("leaf", "root")) {
   )
   
   hubs <- hubs %>% left_join(results, by = join_by(Gene == ensembl_gene_id))
-  write.xlsx(hubs, here(paste0("Prova/WGCNA/spearman/ath/hub_genes_", tissue, ".xlsx")))
+  write.xlsx(hubs, here(paste0("Project/WGCNA/hub_genes_", tissue, ".xlsx")))
   
   for (colour in unique(net$genes_and_modules$Modules)) {
     
@@ -101,7 +101,7 @@ for (tissue in c("leaf", "root")) {
       df <- df %>%
         filter(Source == "GO:BP", !(ID %in% generic_BP))
       
-      write.xlsx(df, here(paste0("Prova/WGCNA/spearman/ath/enrichment_analysis_", tissue, "_", colour, ".xlsx")))
+      write.xlsx(df, here(paste0("Project/WGCNA/enrichment_analysis_", tissue, "_", colour, ".xlsx")))
       
       # vedere i moduli stabili, fare arricchimento su tutti i moduli (conservati e non), fare tabella unica dell'arricchimento di tutti i moduli
       
@@ -136,7 +136,7 @@ for (tissue in c("leaf", "root")) {
             name = "p.adjust"
           ) 
         
-        ggsave(here(paste0("Prova/WGCNA/spearman/ath/enrichment_", tissue, "_", colour, ".pdf")), dotplot, height = 7, width = 8, units = "in", dpi = 600)
+        ggsave(here(paste0("Project/WGCNA/enrichment_", tissue, "_", colour, ".pdf")), dotplot, height = 7, width = 8, units = "in", dpi = 600)
       }
       
       
@@ -153,7 +153,7 @@ for (tissue in c("leaf", "root")) {
   
     edges_filtered_sft <- get_edge_list(net, module = colour, filter = T)
     
-    write.xlsx(edges_filtered_sft, here(paste0("Prova/WGCNA/spearman/ath/", colour, "_module_", tissue, ".xlsx")))
+    write.xlsx(edges_filtered_sft, here(paste0("Project/WGCNA/", colour, "_module_", tissue, ".xlsx")))
     
     
     hub_genes <- unique(hubs$Gene)
@@ -172,7 +172,7 @@ for (tissue in c("leaf", "root")) {
       edges_hubs <- edges_hubs %>% 
         left_join(results, by = join_by(Var2 == ensembl_gene_id))
       
-      write.xlsx(edges_hubs, here(paste0("Prova/WGCNA/spearman/ath/edges_hubs_", colour, "_", tissue, ".xlsx")))
+      write.xlsx(edges_hubs, here(paste0("Project/WGCNA/edges_hubs_", colour, "_", tissue, ".xlsx")))
       
       
       edges_connectome <- edges_filtered_sft %>%
@@ -189,7 +189,7 @@ for (tissue in c("leaf", "root")) {
         edges_connectome <- edges_connectome %>% 
           left_join(results, by = join_by(Var2 == ensembl_gene_id))
         
-        write.xlsx(edges_connectome, here(paste0("Prova/WGCNA/spearman/ath/edges_connectome_", colour, "_", tissue, ".xlsx")))
+        write.xlsx(edges_connectome, here(paste0("Project/WGCNA/edges_connectome_", colour, "_", tissue, ".xlsx")))
         
         tf_set        <- unique(tf$Gene_ID)
         conn_set      <- unique(connectome)
@@ -235,7 +235,7 @@ for (tissue in c("leaf", "root")) {
           mutate(kWithin = tidyr::replace_na(kWithin, 0)) %>%
           left_join(gene_descr, by = join_by(Var == X.gene_id))
         
-        write.xlsx(edges_filtered_sft, here(paste0("Prova/WGCNA/spearman/ath/genes_annotation_", colour, "_", tissue, ".xlsx")))
+        write.xlsx(edges_filtered_sft, here(paste0("Project/WGCNA/genes_annotation_", colour, "_", tissue, ".xlsx")))
         
       }
     }

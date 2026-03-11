@@ -17,20 +17,20 @@ conserved_terms <- list()
 i <- 1
 for(sp in species) {
   organism <- paste0(str_to_lower(substr(sp, 1, 1)), str_split_i(sp, " ", 2))
-  gmt_token <- gprofiler2::upload_GMT_file(gmtfile = here(paste0("Prova/", sp, "/Data/", organism, ".GO_BP.ENSG_PlantConnectomeDroughtAdded.gmt")))
+  gmt_token <- gprofiler2::upload_GMT_file(gmtfile = here(paste0("Project/", sp, "/Data/", organism, ".GO_BP.ENSG_PlantConnectomeDroughtAdded.gmt")))
   
-  coldata <- read.xlsx(here(paste0("Prova/", sp, "/Data/metadata_filtered_2.xlsx")))
-  counts_gene_level <- read.table(here(paste0("Prova/", sp, "/Data/counts_gene_level.txt")))
+  coldata <- read.xlsx(here(paste0("Project/", sp, "/Data/metadata_filtered_2.xlsx")))
+  counts_gene_level <- read.table(here(paste0("Project/", sp, "/Data/counts_gene_level.txt")))
   
   terms <- list()
   tissues <- c("leaf", "root")
   
   for (tissue in tissues) {
     
-    expressed_genes_adj <- read_file(here(paste0("Prova/", sp, "/Products/DEGs analysis/expressed_genes_", tissue, ".txt")))
+    expressed_genes_adj <- read_file(here(paste0("Project/", sp, "/Products/DEGs analysis/expressed_genes_", tissue, ".txt")))
     expressed_genes_adj <- str_split_1(expressed_genes_adj, "\n")
     
-    degs <- read.xlsx(here(paste0("Prova/", sp, "/Products/DEGs analysis/GDE_", tissue, ".xlsx")))
+    degs <- read.xlsx(here(paste0("Project/", sp, "/Products/DEGs analysis/GDE_", tissue, ".xlsx")))
     
     for (expr in c("OVER", "UNDER")) {
       genes <- (degs %>% filter(expression == expr))$Gene
@@ -42,7 +42,7 @@ for(sp in species) {
         df <- df %>%
           filter(!(ID %in% generic_BP))
         
-        write.xlsx(df, here(paste0("Prova/", sp, "/Products/Enrichment analysis/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
+        write.xlsx(df, here(paste0("Project/", sp, "/Products/Enrichment analysis/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
         terms <- append(terms, df$Description)
         
         if (length(df$ID) > 0) {
@@ -76,7 +76,7 @@ for(sp in species) {
               name = "p.adjust"
             ) 
           
-          ggsave(here(paste0("Prova/", sp, "/Products/Enrichment analysis/enrichment_dotplot_degs_", tissue, "_", expr, ".pdf")), dotplot, height = 6, width = 8, units = "in", dpi = 600)
+          ggsave(here(paste0("Project/", sp, "/Products/Enrichment analysis/enrichment_dotplot_degs_", tissue, "_", expr, ".pdf")), dotplot, height = 6, width = 8, units = "in", dpi = 600)
         }
         
         
@@ -93,14 +93,14 @@ for(sp in species) {
 }
 conserved_terms <- union(union(intersect(conserved_terms[[1]], conserved_terms[[2]]), intersect(conserved_terms[[1]], conserved_terms[[3]])), intersect(conserved_terms[[2]], conserved_terms[[3]]))
 conserved_terms <- unlist(unique(conserved_terms))
-write(conserved_terms, here("Prova/conserved_enriched_terms_organism.txt"))
+write(conserved_terms, here("Project/conserved_enriched_terms_organism.txt"))
 
 heatmap_df <- data.frame(row.names = conserved_terms)
 for (sp in species) {
   for (tissue in tissues) {
     expression <- list()
     terms_list <- lapply(c("OVER", "UNDER"), function(expr) {
-      enr <- read.xlsx(here(paste0("Prova/", sp, "/Products/Enrichment analysis/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
+      enr <- read.xlsx(here(paste0("Project/", sp, "/Products/Enrichment analysis/enrichment_analysis_degs_", tissue, "_", expr, ".xlsx")))
       enr <- enr %>% filter(Description %in% conserved_terms)
       
       return(enr)
@@ -161,7 +161,7 @@ palette <- c("steelblue1", "navy", "lightsalmon")
 
 heatmap_df[heatmap_df == "NO"] <- NA
 heatmap <- pheatmap(heatmap_df, color = palette, na_col = "grey", legend_breaks = c(1, 0, -1), legend_labels = c("UP", "UP & DOWN", "DOWN"), border_color = "white", annotation_col = annotation, annotation_colors = list(Organ = c(Leaf = "darkgreen", Root = "brown")), cellheight = 10, cellwidth = 10, angle_col = "45", gaps_col = c(2, 4), cluster_rows = F, cluster_cols = F, labels_col = c("Arabidopsis", "Arabidopsis", "Wheat", "Wheat", "Tomato", "Tomato"))
-pdf(here("Prova/heatmap_enrichment_organism.pdf"), width = 10, height = 25)
+pdf(here("Project/heatmap_enrichment_organism.pdf"), width = 10, height = 25)
 heatmap
 dev.off()
 

@@ -6,8 +6,8 @@ library(sva)
 
 species <- c("Solanum lycopersicum", "Arabidopsis thaliana", "Triticum aestivum")
 for(sp in species) {
-  coldata <- read.xlsx(here(paste0("Prova/", sp, "/Data/metadata_filtered_2.xlsx")))
-  counts_gene_level <- read.table(here(paste0("Prova/", sp, "/Data/counts_gene_level.txt")))
+  coldata <- read.xlsx(here(paste0("Project/", sp, "/Data/metadata_filtered_2.xlsx")))
+  counts_gene_level <- read.table(here(paste0("Project/", sp, "/Data/counts_gene_level.txt")))
   
   dds <- DESeqDataSetFromMatrix(countData = round(counts_gene_level), colData = coldata, design = ~ Type.of.sample)
 
@@ -45,7 +45,7 @@ for(sp in species) {
   }
 
   adjusted <- as.data.frame(adjusted) %>% filter(across(everything(), ~ . < 10^9))
-  write.table(adjusted, here(paste0("Prova/", sp, "/Data/counts_gene_level_normalised_adjusted_group_parameter.txt")), quote = FALSE, sep = "\t")
+  write.table(adjusted, here(paste0("Project/", sp, "/Data/counts_gene_level_normalised_adjusted_group_parameter.txt")), quote = FALSE, sep = "\t")
 
   # single tissues
 
@@ -107,7 +107,7 @@ for(sp in species) {
 
       adjusted <- adjusted %>% filter(across(everything(), ~ . < 10^9))
 
-      write.table(adjusted, here(paste0("Prova/", sp, "/Data/counts_gene_level_", tissue, "_normalised_adjusted_group_parameter.txt")), quote = FALSE, sep = "\t")
+      write.table(adjusted, here(paste0("Project/", sp, "/Data/counts_gene_level_", tissue, "_normalised_adjusted_group_parameter.txt")), quote = FALSE, sep = "\t")
 
 
       if (sp == "Arabidopsis thaliana") {
@@ -129,7 +129,7 @@ for(sp in species) {
 
       adjusted <- adjusted %>% filter(across(everything(), ~ . < 10^9))
 
-      write.table(adjusted, here(paste0("Prova/", sp, "/Data/counts_gene_level_", tissue, "_notnormalised_adjusted_group_parameter.txt")), quote = FALSE, sep = "\t")
+      write.table(adjusted, here(paste0("Project/", sp, "/Data/counts_gene_level_", tissue, "_notnormalised_adjusted_group_parameter.txt")), quote = FALSE, sep = "\t")
 
 
     }
@@ -141,12 +141,12 @@ for(sp in species) {
     counts_gene_level <- counts_gene_level %>% select(-c("SRR19846610", "SRR19846699", "SRR19846630", "SRR19846652", "SRR19846653", "SRR19846659", "SRR19846602", "SRR19846644"))
     write.table(counts_gene_level, here(paste0("Prova/", sp, "/Data/counts_gene_level.txt")))
     coldata <- coldata %>% filter(Run %in% colnames(counts_gene_level))
-    write.xlsx(coldata, here(paste0("Prova/", sp, "/Data/metadata_filtered_2.xlsx")))
+    write.xlsx(coldata, here(paste0("Project/", sp, "/Data/metadata_filtered_2.xlsx")))
   }
   else if (sp == "Solanum lycopersicum") {
     coldata <- coldata %>% filter(!Run %in% c("SRR10192967", "SRR10192966", "SRR10192965", "SRR10192972", "SRR10192973", "SRR10192964", "SRR23959355", "SRR23959357", "SRR23959356", "SRR23959352", "SRR23959354", "SRR23959353", "SRR7218473", "SRR7206505", "SRR7218472", "SRR7206503", "SRR7206501", "SRR7206499", "SRR7206497", "SRR7206495"))
     counts_gene_level <- counts_gene_level %>% select(coldata$Run)
     write.table(counts_gene_level, here(paste0("Prova/", sp, "/Data/counts_gene_level.txt")))
-    write.xlsx(coldata, here(paste0("Prova/", sp, "/Data/metadata_filtered_2.xlsx")))
+    write.xlsx(coldata, here(paste0("Project/", sp, "/Data/metadata_filtered_2.xlsx")))
   }
 }

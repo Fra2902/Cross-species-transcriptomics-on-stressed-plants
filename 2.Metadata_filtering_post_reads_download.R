@@ -6,12 +6,12 @@ library(sva)
 
 species <- c("Arabidopsis thaliana", "Triticum aestivum", "Solanum lycopersicum")
 for(sp in species) {
-  coldata <- read.xlsx(here(paste0("Prova/", sp, "/Data/metadata_filtered.xlsx")))
-  counts <- read.table(here(paste0(sp, "/Data/compiled_counts_table.txt")), header = T)
+  coldata <- read.xlsx(here(paste0("Project/", sp, "/Data/metadata_filtered.xlsx")))
+  counts <- read.table(here(paste0("Project/", sp, "/Data/compiled_counts_table.txt")), header = T)
   coldata <- coldata %>%
     filter(Run %in% colnames(counts))
   
-  general_metadata <- read.xlsx(here("general_metadata.xlsx"))
+  general_metadata <- read.xlsx(here("Project/general_metadata.xlsx"))
   
   control_numbers <- coldata %>%
     group_by(BioProject, Type.of.sample) %>%
@@ -31,7 +31,7 @@ for(sp in species) {
     inner_join(general_metadata, by = join_by(BioProject == `Repository.Identifier.BioProject.(SRA,.ArrayExpress)`), keep = FALSE) %>% distinct(Run, .keep_all = TRUE)  %>%
     select(!c(Species, Study.short.summary, Stress.type, number_sample, `repeats.(biological.replicates)`, total_sample, `Platform(s)`, Publication, Pubmed.ID, DOI, `(article.title)`, Repository.Identifier.as.indicated.in.the.original.publication, Major_Category, number_control, number_stressed))
   
-  write.xlsx(coldata, here(paste0("Prova/", sp, "/Data/metadata_filtered_2.xlsx")))
+  write.xlsx(coldata, here(paste0("Project/", sp, "/Data/metadata_filtered_2.xlsx")))
   
 }
 

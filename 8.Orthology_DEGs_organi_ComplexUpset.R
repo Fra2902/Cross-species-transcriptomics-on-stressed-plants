@@ -12,7 +12,7 @@ library(ComplexUpset)
 
 species <- c("Arabidopsis thaliana", "Triticum aestivum", "Solanum lycopersicum")
 
-orthogroups <- read.csv(here("Orthology analysis/Phylogenetic_Hierarchical_Orthogroups/N0.tsv"), sep = "\t")
+orthogroups <- read.csv(here("Project/N0.tsv"), sep = "\t")
 
 colnames(orthogroups) <- c("Orthogroup", "Arabidopsis thaliana", "Solanum lycopersicum", "Triticum aestivum")
 
@@ -23,7 +23,7 @@ orthogroups <- orthogroups %>%
 for (tissue in c("leaf", "root")) {
   
   deg_list <- lapply(species, function(sp) {
-    read.xlsx(here(paste0("Prova/", sp, "/Products/DEGs analysis/GDE_", tissue, ".xlsx")))
+    read.xlsx(here(paste0("Project/", sp, "/Products/DEGs analysis/GDE_", tissue, ".xlsx")))
   })
   
   names(deg_list) <- species
@@ -91,7 +91,7 @@ for (tissue in c("leaf", "root")) {
     )
   )
   
-  pdf(here(paste0("Prova/Orthology analysis/orthology_ComplexUpset_", tissue, ".pdf")))
+  pdf(here(paste0("Project/Orthology analysis/orthology_ComplexUpset_", tissue, ".pdf")))
   print(plot)
   dev.off()
   
@@ -134,7 +134,7 @@ for (tissue in c("leaf", "root")) {
   colnames(orthogroups_2) <- c("Orthogroup", "Expression", "Arabidopsis thaliana", "Solanum lycopersicum", "Triticum aestivum", "Description")
     
   orthogroups_2 <- orthogroups_2 %>% select(Orthogroup, `Arabidopsis thaliana`, `Triticum aestivum`, `Solanum lycopersicum`, Description, Expression)
-  write.xlsx(orthogroups_2, here(paste0("Prova/Orthology analysis/Conserved_degs_", tissue, ".xlsx")))
+  write.xlsx(orthogroups_2, here(paste0("Project/Orthology analysis/conserved_degs_", tissue, ".xlsx")))
 }
 
 

@@ -7,10 +7,10 @@ library(gplots)
 species <- c("Arabidopsis thaliana", "Triticum aestivum", "Solanum lycopersicum")
 for(sp in species) {
   
-  coldata <- read.xlsx(here(paste0("Prova/", sp, "/Data/metadata_filtered_2.xlsx")))
+  coldata <- read.xlsx(here(paste0("Project/", sp, "/Data/metadata_filtered_2.xlsx")))
   
   for (tissue in c("leaf", "root")) {
-    counts <- read.table(here(paste0("Prova/", sp, "/Data/counts_gene_level_", tissue, "_normalised_adjusted_group_parameter.txt")))
+    counts <- read.table(here(paste0("Project/", sp, "/Data/counts_gene_level_", tissue, "_normalised_adjusted_group_parameter.txt")))
     
     metadata <- coldata %>%
       filter(Major.Category == tissue, Run %in% colnames(counts))
@@ -26,7 +26,7 @@ for(sp in species) {
       sizeS <- length(metadataS$Run) / length(unique(metadataS$BioProject))
       keep <- rowSums(counts(dds) >= 10) >= min(sizeC, sizeS)
       dds <- dds[keep,]
-      write(rownames(assay(dds)), here(paste0("Prova/", sp, "/Products/DEGs analysis/expressed_genes_", tissue, ".txt")))
+      write(rownames(assay(dds)), here(paste0("Project/", sp, "/Products/DEGs analysis/expressed_genes_", tissue, ".txt")))
       dds <- DESeq(dds)
       res <- results(dds, contrast = c("Type.of.sample", "STRESSED", "CONTROL"), alpha = 0.05)
       res <- lfcShrink(dds, contrast= c("Type.of.sample", "STRESSED", "CONTROL"), type="normal", res=res)
@@ -34,7 +34,7 @@ for(sp in species) {
         filter(abs(log2FoldChange) >= log2(1.5) & padj <= 0.05) %>%
         rownames_to_column(var = "Gene") %>%
         mutate(expression = case_when(log2FoldChange < 0 ~ 'UNDER', log2FoldChange > 0 ~ 'OVER'), dataset = tissue)
-      write.xlsx(res, here(paste0("Prova/", sp, "/Products/DEGs analysis/GDE_", tissue, ".xlsx", sep = "")), quote = FALSE)
+      write.xlsx(res, here(paste0("Project/", sp, "/Products/DEGs analysis/GDE_", tissue, ".xlsx", sep = "")), quote = FALSE)
       
       
       studies <- unique(metadata$BioProject)
@@ -55,7 +55,7 @@ for(sp in species) {
             sizeS <- length(metadataS$Run) / length(unique(metadataS$BioProject))
             keep <- rowSums(counts(dds) >= 10) >= min(sizeC, sizeS)
             dds <- dds[keep,]
-            write(rownames(assay(dds)), here(paste0("Prova/", sp, "/Products/DEGs analysis/expressed_genes_", study, "_", tissue, ".txt")))
+            write(rownames(assay(dds)), here(paste0("Project/", sp, "/Products/DEGs analysis/expressed_genes_", study, "_", tissue, ".txt")))
             dds <- DESeq(dds)
             res <- results(dds, contrast = c("Type.of.sample", "STRESSED", "CONTROL"), alpha = 0.05)
             res <- lfcShrink(dds, contrast= c("Type.of.sample", "STRESSED", "CONTROL"), type="normal", res=res)
@@ -63,7 +63,7 @@ for(sp in species) {
               filter(abs(log2FoldChange) >= log2(1.5) & padj <= 0.05) %>%
               rownames_to_column(var = "Gene") %>%
               mutate(expression = case_when(log2FoldChange < 0 ~ 'UNDER', log2FoldChange > 0 ~ 'OVER'))
-            write.xlsx(res, here(paste0("Prova/", sp, "/Products/DEGs analysis/GDE_", study, "_", tissue, ".xlsx", sep = "")), quote = FALSE)
+            write.xlsx(res, here(paste0("Project/", sp, "/Products/DEGs analysis/GDE_", study, "_", tissue, ".xlsx", sep = "")), quote = FALSE)
             
             res <- res %>%
               mutate(dataset = paste0(study, "_", tissue, "_"))
@@ -76,7 +76,7 @@ for(sp in species) {
   }
   
   ## barplot
-  projects <- list.files(path = here(paste0("Prova/", sp, "/Products/DEGs analysis/")), pattern = "\\.xlsx$", full.names = TRUE)
+  projects <- list.files(path = here(paste0("Project/", sp, "/Products/DEGs analysis/")), pattern = "\\.xlsx$", full.names = TRUE)
   
   exclude_pattern <- "jaccard"
   
@@ -94,7 +94,7 @@ for(sp in species) {
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   
-  pdf(here(paste0("Prova/", sp, "/Products/DEGs analysis/barplot.pdf")), width = 4.9, height = 4.9)
+  pdf(here(paste0("Project/", sp, "/Products/DEGs analysis/barplot.pdf")), width = 4.9, height = 4.9)
   print(barplot)
   dev.off()
   
@@ -120,10 +120,10 @@ for(sp in species) {
           col_name <- colnames(jaccard_index_df)[col]
           
           
-          df1 <- read.xlsx(here(paste0("Prova/", sp, "/Products/DEGs analysis/GDE_", row_name, ".xlsx", sep = "")), rowNames = TRUE) %>%
+          df1 <- read.xlsx(here(paste0("Project/", sp, "/Products/DEGs analysis/GDE_", row_name, ".xlsx", sep = "")), rowNames = TRUE) %>%
             filter(expression == i)
           
-          df2 <- read.xlsx(here(paste0("Prova/", sp, "/Products/DEGs analysis/GDE_", col_name, ".xlsx", sep = "")), rowNames = TRUE) %>%
+          df2 <- read.xlsx(here(paste0("Project/", sp, "/Products/DEGs analysis/GDE_", col_name, ".xlsx", sep = "")), rowNames = TRUE) %>%
             filter(expression == i)
           
           genes1 <- rownames(df1)
@@ -137,13 +137,13 @@ for(sp in species) {
     
     jaccard_index_df[upper.tri(jaccard_index_df)] <- NA
     my_palette <- colorpanel(10, "white", "blue")
-    pdf(here(paste0("Prova/", sp, "/Products/DEGs analysis/heatmap_jaccard_index_", i, ".pdf")), width = 8.6, height = 8.6)
+    pdf(here(paste0("Project/", sp, "/Products/DEGs analysis/heatmap_jaccard_index_", i, ".pdf")), width = 8.6, height = 8.6)
     heatmap.2(as.matrix(jaccard_index_df), trace="none", density.info="none", dendrogram="none", sepcolor = "black", colsep = 1:ncol(jaccard_index_df), rowsep = 1:ncol(jaccard_index_df), sepwidth = c(0.0005, 0.0005), col=my_palette, margins=c(12,12), cexRow=1, cexCol=1, Rowv = NA, Colv = NA, offsetRow = -40)
     dev.off()
     
     jaccard_index_df <- jaccard_index_df %>%
       rownames_to_column(var = "Subset")
-    write.xlsx(jaccard_index_df, here(paste0("Prova/", sp, "/Products/DEGs analysis/jaccard_index_", i, ".xlsx")), quote = FALSE)
+    write.xlsx(jaccard_index_df, here(paste0("Project/", sp, "/Products/DEGs analysis/jaccard_index_", i, ".xlsx")), quote = FALSE)
   }
   
   
@@ -164,7 +164,7 @@ for (i in c("OVER", "UNDER")) {
   expr <- ifelse(i == "OVER", "UP", "DOWN")
   
   for (sp in species) {
-    index_table <- read.xlsx(here(paste0("Prova/", sp, "/Products/DEGs analysis/jaccard_index_", i, ".xlsx")))
+    index_table <- read.xlsx(here(paste0("Project/", sp, "/Products/DEGs analysis/jaccard_index_", i, ".xlsx")))
     index_table <- index_table %>% column_to_rownames("Subset")
     
     for (tissue in c("leaf", "root")) {
@@ -189,7 +189,7 @@ tissues <- unlist(tissues)
 jaccard_indexes <- unlist(jaccard_indexes)
 df_boxplot <- data_frame(Expression = expression, Species = organisms, Organ = tissues, Index = jaccard_indexes)
 df_boxplot$Expression <- factor(df_boxplot$Expression, levels = c("UP", "DOWN"))
-write.xlsx(df_boxplot, here("Prova/general_jaccard_index_sets対sets.xlsx"))
+write.xlsx(df_boxplot, here("Project/general_jaccard_index_sets対sets.xlsx"))
 boxplot <- ggplot(data=df_boxplot, mapping=aes(x = interaction(Expression, Organ, Species), y = Index, fill = Organ)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.7) +
@@ -214,7 +214,7 @@ boxplot <- ggplot(data=df_boxplot, mapping=aes(x = interaction(Expression, Organ
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) 
 
 
-pdf(here("Prova/general_jaccard_index_sets対sets.pdf"))
+pdf(here("Project/general_jaccard_index_sets対sets.pdf"))
 print(boxplot)
 dev.off()
 
@@ -222,7 +222,7 @@ dev.off()
 
 for (sp in species) {
   sh <- shapiro.test((df_boxplot %>% filter(Species == sp))$Index)
-  pdf(here(paste0("Prova/", sp, "/Products/DEGs analysis/JI_distribution.pdf")))
+  pdf(here(paste0("Project/", sp, "/Products/DEGs analysis/JI_distribution.pdf")))
   print(hist((df_boxplot %>% filter(Species == sp))$Index))
   dev.off()
   
@@ -232,29 +232,29 @@ for (sp in species) {
     
     if (ba[[3]] > 0.05) {
       mod <- t.test(Index ~ Expression, data = df_boxplot, var.equal = TRUE)
-      write_lines(mod, here(paste0("Prova/", sp, "/Products/DEGs analysis/ttest_expression.txt")))
+      write_lines(mod, here(paste0("Project/", sp, "/Products/DEGs analysis/ttest_expression.txt")))
     } else {
       mod <- t.test(Index ~ Expression, data = df_boxplot)
-      write_lines(mod, here(paste0("Prova/", sp, "/Products/DEGs analysis/welch_expression.txt")))
+      write_lines(mod, here(paste0("Project/", sp, "/Products/DEGs analysis/welch_expression.txt")))
     }
     
     ba <- bartlett.test(Index ~ Organ, data = df_boxplot)
     if (ba[[3]] > 0.05) {
       mod <- t.test(Index ~ Organ, data = df_boxplot, var.equal = TRUE)
-      write_lines(mod, here(paste0("Prova/", sp, "/Products/DEGs analysis/ttest_organ.txt")))
+      write_lines(mod, here(paste0("Project/", sp, "/Products/DEGs analysis/ttest_organ.txt")))
     } else {
       mod <- t.test(Index ~ Expression, data = df_boxplot)
-      write_lines(mod, here(paste0("Prova/", sp, "/Products/DEGs analysis/welch_expression.txt")))
+      write_lines(mod, here(paste0("Project/", sp, "/Products/DEGs analysis/welch_expression.txt")))
     }
     
   } else {
     ## wilcoxon-mann-whitney calculation
     
     wi <- wilcox.test((df_boxplot %>% filter(Species == sp, Expression == "UP"))$Index, (df_boxplot %>% filter(Species == sp, Expression == "DOWN"))$Index)
-    write_lines(wi, here(paste0("Prova/", sp, "/Products/DEGs analysis/wilcoxon_expression.txt")))
+    write_lines(wi, here(paste0("Project/", sp, "/Products/DEGs analysis/wilcoxon_expression.txt")))
     
     wi <- wilcox.test((df_boxplot %>% filter(Species == sp, Organ == "leaf"))$Index, (df_boxplot %>% filter(Species == sp, Organ == "root"))$Index)
-    write_lines(wi, here(paste0("Prova/", sp, "/Products/DEGs analysis/wilcoxon_organ.txt")))
+    write_lines(wi, here(paste0("Project/", sp, "/Products/DEGs analysis/wilcoxon_organ.txt")))
   }
   
   
@@ -273,7 +273,7 @@ tissues <- list()
 integrated_sets <- list()
 
 for (sp in species) {
-  projects <- list.files(path = here(paste0("Prova/", sp, "/Products/DEGs analysis/")), pattern = "\\.xlsx$", full.names = TRUE)
+  projects <- list.files(path = here(paste0("Project/", sp, "/Products/DEGs analysis/")), pattern = "\\.xlsx$", full.names = TRUE)
   exclude_pattern <- "jaccard"
   projects <- projects[!grepl(exclude_pattern, projects)]
   
@@ -282,7 +282,7 @@ for (sp in species) {
   projects <- unlist(projects)
   
   for (name in projects) {
-    df_degs <- read.xlsx(here(paste0("Prova/", sp, "/Products/DEGs analysis/GDE_", name, ".xlsx", sep = "")), rowNames = TRUE)
+    df_degs <- read.xlsx(here(paste0("Project/", sp, "/Products/DEGs analysis/GDE_", name, ".xlsx", sep = "")), rowNames = TRUE)
     for (i in c("OVER", "UNDER")) {
       degs <- df_degs %>% filter(expression == i)
       
@@ -349,7 +349,7 @@ boxplot <- ggplot(data=df_boxplot, mapping=aes(x = interaction(Expression, Organ
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) 
 
-pdf(here("Prova/general_number_of_degs.pdf"))
+pdf(here("Project/general_number_of_degs.pdf"))
 print(boxplot)
 dev.off()
 
